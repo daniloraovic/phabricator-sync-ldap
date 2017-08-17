@@ -1,6 +1,5 @@
 #!/usr/bin/php
 <?php
-
 assert_options(ASSERT_BAIL, 1);
 define("ROOT", dirname(__FILE__));
 define("BASENAME", basename(__FILE__, ".php"));
@@ -21,6 +20,7 @@ require_once ROOT . "/" . BASENAME . ".cfg";
 assert(LDAP_BASE !== null);
 assert(LDAP_USER_SUBTREE !== null);
 assert(LDAP_GROUP_SUBTREE !== null);
+assert(LDAP_PROJECT_SUBTREE !== null);
 
 assert(LDAP_USER_FILTER !== null);
 assert(LDAP_USER_NAME_ATTR !== null);
@@ -32,6 +32,11 @@ assert(LDAP_GROUP_FILTER !== null);
 assert(LDAP_GROUP_NAME_ATTR !== null);
 assert(LDAP_GROUP_MEMBER_ATTR !== null);
 assert(LDAP_GROUP_MEMBER_TRGT !== null);
+
+assert(LDAP_PROJECT_FILTER !== null);
+assert(LDAP_PROJECT_NAME_ATTR !== null);
+assert(LDAP_PROJECT_MEMBER_ATTR !== null);
+assert(LDAP_PROJECT_MEMBER_TRGT !== null);
 
 assert(PHAB_ADMIN_USERNAME !== null);
 assert(PHAB_PROJECT_LDAP_DN_FIELD !== null);
@@ -75,6 +80,11 @@ $ld = array(
 		"name_attr" => LDAP_GROUP_NAME_ATTR,
 		"member_attr" => LDAP_GROUP_MEMBER_ATTR,
 	),
+	"project" => array(
+		"search_base" => LDAP_BASE ? LDAP_PROJECT_SUBTREE . ',' . LDAP_BASE : LDAP_PROJECT_SUBTREE,
+		"filter" => LDAP_PROJECT_FILTER,
+		"name_attr" => LDAP_PROJECT_NAME_ATTR,
+	),
 );
 
 $ldap_users = query_ldap($ld["connection"], $ld["user"]["search_base"], $ld["user"]["filter"]);
@@ -82,6 +92,9 @@ $ldap_users = associate_ldap_list_with_dn($ldap_users);
 
 $ldap_groups = query_ldap($ld["connection"], $ld["group"]["search_base"], $ld["group"]["filter"]);
 $ldap_groups = associate_ldap_list_with_dn($ldap_groups);
+
+$ldap_projects = query_ldap($ld["connection"], $ld["project"]["search_base"], $ld["project"]["filter"]);
+$ldap_projects = associate_ldap_list_with_dn($ldap_projects);
 
 // PHABRICATOR
 
@@ -118,7 +131,7 @@ $project_map = map_projects($phab_projects, $phab);
 
 update_phab_users($user_map, $ldap_users, $ld, $phab);
 
-update_phab_projects($project_map, $ldap_groups, $ld, $phab);
+update_phab_projects($project_map, $ldap_groups, $ld, $phab, $ldap_projects, $phab_projects);
 
 $phab_projects = id(new PhabricatorProjectQuery())
 		->setViewer(PhabricatorUser::getOmnipotentUser())
